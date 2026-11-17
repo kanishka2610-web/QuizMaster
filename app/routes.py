@@ -42,6 +42,11 @@ def leaderboard_page():
     return render_template("leaderboard.html")
 
 
+@pages.route("/history")
+def history_page():
+    return render_template("history.html")
+
+
 @api.route("/quizzes")
 def list_quizzes():
     query = Quiz.query
@@ -193,3 +198,41 @@ def stats():
         "total_attempts": Attempt.query.count(),
         "quizzes": quiz_stats,
     })
+
+
+def _get_player_attempts(name):
+    name = (name or "").strip()
+    if not name:
+        return error("Player name is required", 400)
+    attempts = (
+        Attempt.query.filter(
+            db.func.lower(Attempt.player_name) == name.lower()
+        )
+        .order_by(Attempt.created_at.desc(), Attempt.id.desc())
+        .all()
+    )
+    return jsonify([attempt.to_dict() for attempt in attempts])
+
+
+@api.route("/players/<player_name>/attempts")
+def player_attempts(player_name):
+    return _get_player_attempts(player_name)
+
+
+@api.route("/players/attempts")
+def player_attempts_empty():
+    return error("Player name is required", 400)
+
+
+@api.route("/attempts")
+def attempts_by_query():
+    name = request.args.get("player_name", "")
+    return _get_player_attempts(name)
+
+
+@api.route("/history")
+def history_by_query():
+    name = request.args.get("player_name", "")
+    return _get_player_attempts(name)
+
+

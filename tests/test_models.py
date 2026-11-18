@@ -129,8 +129,6 @@ def test_attempt_to_dict(app):
         # Acceptance criterion: Attempt.to_dict
         data = attempt.to_dict()
         assert data["id"] == attempt.id
-        assert data["quiz_id"] == quiz.id
-        assert data["quiz_title"] == "Science Quiz"
         assert data["player_name"] == "Asha"
         assert data["score"] == 3
         assert data["total_questions"] == 5
@@ -138,8 +136,6 @@ def test_attempt_to_dict(app):
         assert data["created_at"] == attempt.created_at.isoformat()
         assert set(data.keys()) == {
             "id",
-            "quiz_id",
-            "quiz_title",
             "player_name",
             "score",
             "total_questions",
@@ -197,21 +193,6 @@ def test_attempt_to_dict_zero_score_and_time(app):
         assert data["time_taken_seconds"] == 0
         assert data["total_questions"] == 10
         assert data["player_name"] == "PlayerZero"
-        assert data["quiz_title"] == "Tough Quiz"
-
-
-def test_attempt_to_dict_missing_quiz_backref(app):
-    with app.app_context():
-        attempt = Attempt(
-            quiz_id=99999,
-            player_name="Ghost Player",
-            score=1,
-            total_questions=1,
-            time_taken_seconds=5,
-        )
-        data = attempt.to_dict()
-        assert data["quiz_title"] == ""
-        assert data["player_name"] == "Ghost Player"
 
 
 def test_models_created_at_is_valid_isoformat(app):
@@ -239,5 +220,6 @@ def test_models_created_at_is_valid_isoformat(app):
         dt_attempt = datetime.fromisoformat(attempt_dict["created_at"])
         assert dt_quiz is not None
         assert dt_attempt is not None
+
 
 

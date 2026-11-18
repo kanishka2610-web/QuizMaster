@@ -18,6 +18,9 @@ class Quiz(db.Model):
     questions = db.relationship("Question", backref="quiz", lazy=True)
     attempts = db.relationship("Attempt", backref="quiz", lazy=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -40,6 +43,9 @@ class Question(db.Model):
     option_d = db.Column(db.String(100), nullable=False)
     correct_option = db.Column(db.String(1), nullable=False)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         # The correct answer is not included on purpose
         return {
@@ -60,6 +66,9 @@ class Attempt(db.Model):
     total_questions = db.Column(db.Integer, nullable=False)
     time_taken_seconds = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utc_now)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {

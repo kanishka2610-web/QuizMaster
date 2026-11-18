@@ -26,7 +26,7 @@ class Quiz(db.Model):
             "category": self.category,
             "difficulty": self.difficulty,
             "question_count": len(self.questions),
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 

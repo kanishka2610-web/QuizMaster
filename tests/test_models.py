@@ -147,3 +147,97 @@ def test_attempt_to_dict(app):
             "created_at",
         }
 
+
+def test_question_to_dict_options_and_no_leak_all_letters(app):
+    with app.app_context():
+        quiz = Quiz(title="Options Quiz")
+        db.session.add(quiz)
+        db.session.commit()
+
+        for letter in ["A", "B", "C", "D"]:
+            q = Question(
+                quiz_id=quiz.id,
+                text=f"Question with correct {letter}",
+                option_a="Alpha <tag>",
+                option_b="Beta & symbols",
+                option_c="Gamma 123",
+                option_d="Delta 🎉",
+                correct_option=letter,
+            )
+            db.session.add(q)
+            db.session.commit()
+
+            data = q.to_dict()
+            assert "correct_option" not in data
+            assert data["option_a"] == "Alpha <tag>"
+            assert data["option_b"] == "Beta & symbols"
+            assert data["option_c"] == "Gamma 123"
+            assert data["option_d"] == "Delta 🎉"
+            assert set(data.keys()) == {"id", "text", "option_a", "option_b", "option_c", "option_d"}
+
+
+def test_attempt_to_dict_zero_score_and_time(app):
+    with app.app_context():
+        quiz = Quiz(title="Tough Quiz")
+        db.session.add(quiz)
+        db.session.commit()
+
+        attempt = Attempt(
+            quiz_id=quiz.id,
+            player_name="PlayerZero",
+            score=0,
+            total_questions=10,
+            time_taken_seconds=0,
+        )
+        db.session.add(attempt)
+        db.session.commit()
+
+        data = attempt.to_dict()
+        assert data["score"] == 0
+        assert data["time_taken_seconds"] == 0
+        assert data["total_questions"] == 10
+        assert data["player_name"] == "PlayerZero"
+        assert data["quiz_title"] == "Tough Quiz"
+
+
+def test_attempt_to_dict_missing_quiz_backref(app):
+    with app.app_context():
+        attempt = Attempt(
+            quiz_id=99999,
+            player_name="Ghost Player",
+            score=1,
+            total_questions=1,
+            time_taken_seconds=5,
+        )
+        data = attempt.to_dict()
+        assert data["quiz_title"] == ""
+        assert data["player_name"] == "Ghost Player"
+
+
+def test_models_created_at_is_valid_isoformat(app):
+    from datetime import datetime
+
+    with app.app_context():
+        quiz = Quiz(title="Time Quiz")
+        db.session.add(quiz)
+        db.session.commit()
+
+        attempt = Attempt(
+            quiz_id=quiz.id,
+            player_name="Timer",
+            score=2,
+            total_questions=2,
+        )
+        db.session.add(attempt)
+        db.session.commit()
+
+        quiz_dict = quiz.to_dict()
+        attempt_dict = attempt.to_dict()
+
+        # Both created_at should parse as valid ISO datetime strings
+        dt_quiz = datetime.fromisoformat(quiz_dict["created_at"])
+        dt_attempt = datetime.fromisoformat(attempt_dict["created_at"])
+        assert dt_quiz is not None
+        assert dt_attempt is not None
+
+

@@ -146,3 +146,4 @@ def test_attempt_to_dict(app):
             "time_taken_seconds",
             "created_at",
         }
+

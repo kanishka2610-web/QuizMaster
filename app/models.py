@@ -43,25 +43,25 @@ class Quiz(db.Model):
 
 
 class Question(db.Model):
-    id = db.Column(Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(
-        Integer, ForeignKey("quiz.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("quiz.id"), nullable=False, index=True
     )
-    text = db.Column(String(255), nullable=False)
+    text = db.Column(db.String(255), nullable=False)
 
     question_type = db.Column(
-        String(20),
+        db.String(20),
         nullable=False,
         default="multiple_choice",
-        server_default="multiple_choice"
+        server_default="multiple_choice",
     )
 
-    option_a = db.Column(String(100), nullable=False)
-    option_b = db.Column(String(100), nullable=False)
-    option_c = db.Column(String(100), nullable=True)
-    option_d = db.Column(String(100), nullable=True)
+    option_a = db.Column(db.String(100), nullable=False)
+    option_b = db.Column(db.String(100), nullable=False)
+    option_c = db.Column(db.String(100), nullable=True)
+    option_d = db.Column(db.String(100), nullable=True)
 
-    correct_option = db.Column(String(1), nullable=False)
+    correct_option = db.Column(db.String(1), nullable=False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -94,11 +94,11 @@ class Attempt(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(Integer, ForeignKey("quiz.id"), nullable=False)
-    player_name = db.Column(String(50), nullable=False)
-    score = db.Column(Integer, nullable=False)
-    total_questions = db.Column(Integer, nullable=False)
-    time_taken_seconds = db.Column(Integer, default=0)
+    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
+    player_name = db.Column(db.String(50), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    total_questions = db.Column(db.Integer, nullable=False)
+    time_taken_seconds = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utc_now)
 
     def __init__(self, **kwargs):

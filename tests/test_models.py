@@ -1,9 +1,14 @@
+
+from datetime import datetime
+
 from app import db
 from app.models import Attempt, Question, Quiz
 
 
 def test_question_to_dict_excludes_correct_option(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Math Quiz")
         db.session.add(quiz)
         db.session.commit()
@@ -22,7 +27,6 @@ def test_question_to_dict_excludes_correct_option(app):
 
         data = question.to_dict()
 
-        # Acceptance criterion: Question.to_dict does not include correct_option
         assert "correct_option" not in data
         assert data["id"] == question.id
         assert data["text"] == "What is 2 + 2?"
@@ -33,6 +37,7 @@ def test_question_to_dict_excludes_correct_option(app):
         assert set(data.keys()) == {
             "id",
             "text",
+            "question_type",
             "option_a",
             "option_b",
             "option_c",
@@ -40,8 +45,10 @@ def test_question_to_dict_excludes_correct_option(app):
         }
 
 
-def test_quiz_to_dict(app):
+def test_quiz_to_dict_includes_all_fields(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(
             title="Python Basics",
             description="Test your Python knowledge",
@@ -51,8 +58,8 @@ def test_quiz_to_dict(app):
         db.session.add(quiz)
         db.session.commit()
 
-        # Acceptance criterion: Quiz.to_dict, including question_count
         data = quiz.to_dict()
+
         assert data["id"] == quiz.id
         assert data["title"] == "Python Basics"
         assert data["description"] == "Test your Python knowledge"
@@ -70,7 +77,6 @@ def test_quiz_to_dict(app):
             "created_at",
         }
 
-        # Add questions to verify question_count updates dynamically
         q1 = Question(
             quiz_id=quiz.id,
             text="Which keyword defines a function?",
@@ -98,11 +104,14 @@ def test_quiz_to_dict(app):
 
 def test_quiz_to_dict_defaults(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Minimal Quiz")
         db.session.add(quiz)
         db.session.commit()
 
         data = quiz.to_dict()
+
         assert data["title"] == "Minimal Quiz"
         assert data["description"] == ""
         assert data["category"] == "General"
@@ -112,6 +121,8 @@ def test_quiz_to_dict_defaults(app):
 
 def test_attempt_to_dict(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Science Quiz")
         db.session.add(quiz)
         db.session.commit()
@@ -126,9 +137,11 @@ def test_attempt_to_dict(app):
         db.session.add(attempt)
         db.session.commit()
 
-        # Acceptance criterion: Attempt.to_dict
         data = attempt.to_dict()
+
         assert data["id"] == attempt.id
+        assert data["quiz_id"] == quiz.id
+        assert data["quiz_title"] == "Science Quiz"
         assert data["player_name"] == "Asha"
         assert data["score"] == 3
         assert data["total_questions"] == 5
@@ -136,6 +149,8 @@ def test_attempt_to_dict(app):
         assert data["created_at"] == attempt.created_at.isoformat()
         assert set(data.keys()) == {
             "id",
+            "quiz_id",
+            "quiz_title",
             "player_name",
             "score",
             "total_questions",
@@ -146,12 +161,14 @@ def test_attempt_to_dict(app):
 
 def test_question_to_dict_options_and_no_leak_all_letters(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Options Quiz")
         db.session.add(quiz)
         db.session.commit()
 
         for letter in ["A", "B", "C", "D"]:
-            q = Question(
+            question = Question(
                 quiz_id=quiz.id,
                 text=f"Question with correct {letter}",
                 option_a="Alpha <tag>",
@@ -160,20 +177,31 @@ def test_question_to_dict_options_and_no_leak_all_letters(app):
                 option_d="Delta 🎉",
                 correct_option=letter,
             )
-            db.session.add(q)
+            db.session.add(question)
             db.session.commit()
 
-            data = q.to_dict()
+            data = question.to_dict()
+
             assert "correct_option" not in data
             assert data["option_a"] == "Alpha <tag>"
             assert data["option_b"] == "Beta & symbols"
             assert data["option_c"] == "Gamma 123"
             assert data["option_d"] == "Delta 🎉"
-            assert set(data.keys()) == {"id", "text", "option_a", "option_b", "option_c", "option_d"}
+            assert set(data.keys()) == {
+                "id",
+                "text",
+                "question_type",
+                "option_a",
+                "option_b",
+                "option_c",
+                "option_d",
+            }
 
 
 def test_attempt_to_dict_zero_score_and_time(app):
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Tough Quiz")
         db.session.add(quiz)
         db.session.commit()
@@ -189,6 +217,7 @@ def test_attempt_to_dict_zero_score_and_time(app):
         db.session.commit()
 
         data = attempt.to_dict()
+
         assert data["score"] == 0
         assert data["time_taken_seconds"] == 0
         assert data["total_questions"] == 10
@@ -196,9 +225,9 @@ def test_attempt_to_dict_zero_score_and_time(app):
 
 
 def test_models_created_at_is_valid_isoformat(app):
-    from datetime import datetime
-
     with app.app_context():
+        db.create_all()
+
         quiz = Quiz(title="Time Quiz")
         db.session.add(quiz)
         db.session.commit()
@@ -215,11 +244,43 @@ def test_models_created_at_is_valid_isoformat(app):
         quiz_dict = quiz.to_dict()
         attempt_dict = attempt.to_dict()
 
-        # Both created_at should parse as valid ISO datetime strings
         dt_quiz = datetime.fromisoformat(quiz_dict["created_at"])
         dt_attempt = datetime.fromisoformat(attempt_dict["created_at"])
+
         assert dt_quiz is not None
         assert dt_attempt is not None
 
 
+def test_quiz_to_dict_with_no_questions(app):
+    with app.app_context():
+        db.create_all()
 
+        quiz = Quiz(title="Empty Quiz")
+        db.session.add(quiz)
+        db.session.commit()
+
+        result = quiz.to_dict()
+
+        assert result["question_count"] == 0
+
+
+def test_attempt_to_dict_default_time(app):
+    with app.app_context():
+        db.create_all()
+
+        quiz = Quiz(title="Test Quiz")
+        db.session.add(quiz)
+        db.session.commit()
+
+        attempt = Attempt(
+            quiz_id=quiz.id,
+            player_name="Bob",
+            score=5,
+            total_questions=10,
+        )
+        db.session.add(attempt)
+        db.session.commit()
+
+        result = attempt.to_dict()
+
+        assert result["time_taken_seconds"] == 0
